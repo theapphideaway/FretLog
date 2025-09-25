@@ -15,6 +15,7 @@ struct Fret_LogApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .background(Color("AppBackground").ignoresSafeArea(.all))
         }
     }
 }
