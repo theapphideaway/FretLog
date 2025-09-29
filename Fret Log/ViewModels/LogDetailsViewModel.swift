@@ -136,6 +136,57 @@ class LogDetailsViewModel: NSObject, ObservableObject {
     deinit {
         stopAudio()
     }
+    
+    // MARK: - Formating
+    func formatAudioTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    func formatAudioDuration(_ duration: TimeInterval) -> String {
+        let minutes = Int(duration) / 60
+        let seconds = Int(duration) % 60
+        return "\(minutes):\(String(format: "%02d", seconds))"
+    }
+    
+    func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "Unknown" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        return formatter.string(from: date)
+    }
+    
+    func formatTime(_ date: Date?) -> String {
+        guard let date = date else { return "Unknown" }
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+    
+    func formatDuration(log: GuitarLog) -> String {
+        guard let start = log.time_started,
+              let end = log.time_ended else { return "Unknown" }
+        
+        let duration = end.timeIntervalSince(start)
+        let hours = Int(duration) / 3600
+        let minutes = Int(duration) % 3600 / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+    
+    // MARK: View Helpers
+    
+    func hasAudio(log: GuitarLog) -> Bool {
+        guard let audioFileName = log.audio_file_name else { return false }
+        return audioFileName != "No audio" && !audioFileName.isEmpty
+    }
+    
+    
 }
 
 // MARK: - AVAudioPlayerDelegate

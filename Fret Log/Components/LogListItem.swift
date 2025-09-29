@@ -16,19 +16,30 @@ struct LogListItem: View {
                 .frame(width: 4, height: 60)
             
             VStack(alignment: .leading, spacing: 6) {
-                // Practice Type and Genre as main content
+                // Practice Types and Genres as main content
                 HStack {
-                    Text(log.practice_type ?? "Practice")
-                        .font(.headline)
-                        .foregroundColor(.primary)
+                    // Display practice types
+                    if !practiceTypeNames.isEmpty {
+                        Text(practiceTypeNames.joined(separator: ", "))
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                    } else {
+                        Text("Practice")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                    }
                     
-                    Text("•")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    
-                    Text(log.genre ?? "")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
+                    if !genreNames.isEmpty {
+                        Text("•")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                        
+                        Text(genreNames.joined(separator: ", "))
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
                 }
                 
                 // Time information
@@ -76,9 +87,26 @@ struct LogListItem: View {
         .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
     
+    // MARK: - Computed Properties for Relationships
+    
+    private var practiceTypeNames: [String] {
+        guard let types = log.practice_types as? Set<PracticeType> else { return [] }
+        return types.compactMap { $0.name }.sorted()
+    }
+    
+    private var genreNames: [String] {
+        guard let genres = log.genres as? Set<Genre> else { return [] }
+        return genres.compactMap { $0.name }.sorted()
+    }
+    
+    // Get primary practice type for color coding (uses first alphabetically)
+    private var primaryPracticeType: String? {
+        return practiceTypeNames.first
+    }
+    
     private var practiceTypeColor: Color {
-        switch log.practice_type {
-        case "Improv": return .blue
+        switch primaryPracticeType {
+        case "Improv", "Improvisation": return .blue
         case "Technique": return .green
         case "Songs": return .orange
         case "Scales": return .purple

@@ -13,40 +13,42 @@ struct NewLogScreen: View {
     @Environment(\.presentationMode) var presentationMode
     @StateObject private var viewModel = NewLogViewModel()
     
-    @State private var selectedGenre: String = "Jazz"
-    @State private var selectedPracticeType: String = "Improv"
+    @State private var selectedGenres: Set<String> = []
+    @State private var selectedPracticeTypes: Set<String> = []
     
-    let genres = ["Jazz", "Classical"]
-    let practiceTypes = ["Improv", "Song"]
+    let genres = ["Jazz", "Classical", "Rock", "Blues", "Folk", "Metal"]
+    let practiceTypes = ["Improv", "Songs", "Scales", "Technique", "Theory", "Ear Training"]
     
     var body: some View {
         NavigationView {
             Form {
-                Section("Practice Timer") {
+                Section {
                     VStack(spacing: 20) {
                         // Timer Display
-                        Text(viewModel.formatElapsedTime(viewModel.elapsedTime))
+                        Text(viewModel.formatElapsedTime(viewModel.timerManager.elapsedTime))
                             .font(.system(size: 48, weight: .light, design: .monospaced))
-                            .foregroundColor(viewModel.isTimerRunning ? .green : .primary)
+                            .foregroundColor(viewModel.timerManager.isRunning ? .green : .primary)
                         
                         // Start/Stop Button
-                        Button(action: viewModel.toggleTimer) {
+                        Button(action: {
+                            viewModel.timerManager.toggle()
+                        }) {
                             HStack {
-                                Image(systemName: viewModel.isTimerRunning ? "stop.circle.fill" : "play.circle.fill")
+                                Image(systemName: viewModel.timerManager.isRunning ? "stop.circle.fill" : "play.circle.fill")
                                     .font(.title)
-                                Text(viewModel.isTimerRunning ? "Stop Practice" : "Start Practice")
+                                Text(viewModel.timerManager.isRunning ? "Stop Practice" : "Start Practice")
                                     .font(.headline)
                             }
                             .foregroundColor(.white)
                             .padding()
                             .frame(maxWidth: .infinity)
-                            .background(viewModel.isTimerRunning ? Color.red : Color.green)
+                            .background(viewModel.timerManager.isRunning ? Color.red : Color.green)
                             .cornerRadius(12)
                         }
                         .buttonStyle(.plain)
                         
                         // Show session info when timer is running
-                        if viewModel.isTimerRunning, let start = viewModel.startTime {
+                        if viewModel.timerManager.isRunning, let start = viewModel.timerManager.startTime {
                             VStack(spacing: 4) {
                                 Text("Session started at")
                                     .font(.caption)
@@ -58,36 +60,58 @@ struct NewLogScreen: View {
                         }
                     }
                     .padding(.vertical, 8)
+                } header: {
+                    Text("Practice Timer")
                 }
                 
-                Section("Practice Type") {
-                    Picker("Practice Type", selection: $selectedPracticeType) {
-                        ForEach(practiceTypes, id: \.self) { type in
-                            Text(type).tag(type)
+                Section {
+                    ForEach(practiceTypes, id: \.self) { type in
+                        HStack {
+                            Image(systemName: selectedPracticeTypes.contains(type) ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(selectedPracticeTypes.contains(type) ? .blue : .gray)
+                            Text(type)
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            togglePracticeType(type)
                         }
                     }
-                    .pickerStyle(.segmented)
+                } header: {
+                    Text("Practice Types")
+                } footer: {
+                    Text("Select one or more practice types")
                 }
                 
-                Section("Genre") {
-                    Picker("Genre", selection: $selectedGenre) {
-                        ForEach(genres, id: \.self) { genre in
-                            Text(genre).tag(genre)
+                Section {
+                    ForEach(genres, id: \.self) { genre in
+                        HStack {
+                            Image(systemName: selectedGenres.contains(genre) ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(selectedGenres.contains(genre) ? .blue : .gray)
+                            Text(genre)
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            toggleGenre(genre)
                         }
                     }
-                    .pickerStyle(.menu)
+                } header: {
+                    Text("Genres")
+                } footer: {
+                    Text("Select one or more genres")
                 }
                 
-                Section("Audio Recording") {
+                Section {
                     VStack(spacing: 16) {
                         // Recording Status
-                        if viewModel.isRecording {
+                        if viewModel.audioManager.isRecording {
                             HStack {
                                 Circle()
                                     .fill(Color.red)
                                     .frame(width: 12, height: 12)
-                                    .scaleEffect(viewModel.isRecording ? 1.0 : 0.5)
-                                    .animation(.easeInOut(duration: 1.0).repeatForever(), value: viewModel.isRecording)
+                                    .scaleEffect(viewModel.audioManager.isRecording ? 1.0 : 0.5)
+                                    .animation(.easeInOut(duration: 1.0).repeatForever(), value: viewModel.audioManager.isRecording)
                                 
                                 Text("Recording...")
                                     .foregroundColor(.red)
@@ -98,7 +122,7 @@ struct NewLogScreen: View {
                         }
                         
                         // Recording Success Indicator
-                        if viewModel.recordedAudioData != nil && !viewModel.isRecording {
+                        if viewModel.audioManager.recordedAudioData != nil && !viewModel.audioManager.isRecording {
                             HStack {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.green)
@@ -109,28 +133,32 @@ struct NewLogScreen: View {
                         }
                         
                         // Record Button
-                        Button(action: viewModel.toggleRecording) {
+                        Button(action: {
+                            viewModel.audioManager.toggleRecording()
+                        }) {
                             HStack {
-                                Image(systemName: viewModel.isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                                Image(systemName: viewModel.audioManager.isRecording ? "stop.circle.fill" : "mic.circle.fill")
                                     .font(.title2)
-                                Text(viewModel.isRecording ? "Stop Recording" : "Start Recording")
+                                Text(viewModel.audioManager.isRecording ? "Stop Recording" : "Start Recording")
                             }
-                            .foregroundColor(viewModel.isRecording ? .red : .blue)
+                            .foregroundColor(viewModel.audioManager.isRecording ? .red : .blue)
                             .padding()
                             .frame(maxWidth: .infinity)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(viewModel.isRecording ? Color.red : Color.blue, lineWidth: 2)
+                                    .stroke(viewModel.audioManager.isRecording ? Color.red : Color.blue, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)
                         
                         // Audio Playback Controls
-                        if viewModel.recordedAudioData != nil && !viewModel.isRecording {
+                        if viewModel.audioManager.recordedAudioData != nil && !viewModel.audioManager.isRecording {
                             VStack(spacing: 12) {
                                 // Play/Pause Button
-                                Button(action: viewModel.togglePlayback) {
-                                    Image(systemName: viewModel.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                                Button(action: {
+                                    viewModel.audioManager.togglePlayback()
+                                }) {
+                                    Image(systemName: viewModel.audioManager.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                                         .font(.title)
                                         .foregroundColor(.blue)
                                 }
@@ -139,22 +167,22 @@ struct NewLogScreen: View {
                                 // Playback Controls
                                 VStack(spacing: 8) {
                                     Slider(value: Binding(
-                                        get: { viewModel.playbackTime },
+                                        get: { viewModel.audioManager.playbackTime },
                                         set: { newValue in
-                                            viewModel.seekAudio(to: newValue)
+                                            viewModel.audioManager.seekAudio(to: newValue)
                                         }
-                                    ), in: 0...max(viewModel.audioDuration, 0.1))
+                                    ), in: 0...max(viewModel.audioManager.audioDuration, 0.1))
                                     .accentColor(.blue)
                                     
                                     // Time Labels
                                     HStack {
-                                        Text(viewModel.formatTime(viewModel.playbackTime))
+                                        Text(viewModel.formatTime(viewModel.audioManager.playbackTime))
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                         
                                         Spacer()
                                         
-                                        Text(viewModel.formatTime(viewModel.audioDuration))
+                                        Text(viewModel.formatTime(viewModel.audioManager.audioDuration))
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     }
@@ -166,10 +194,13 @@ struct NewLogScreen: View {
                             .cornerRadius(12)
                         }
                     }
+                } header: {
+                    Text("Audio Recording")
                 }
             }
-            .navigationBarBackButtonHidden(true)
             .navigationTitle("New Practice Log")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
@@ -180,22 +211,9 @@ struct NewLogScreen: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
-                        let finalStartTime = viewModel.startTime ?? Date()
-                        let finalEndTime = viewModel.isTimerRunning ?
-                            Date() :
-                            Date(timeIntervalSince1970: finalStartTime.timeIntervalSince1970 + viewModel.elapsedTime)
-                        
-                        viewModel.saveLogEntry(
-                            startTime: finalStartTime,
-                            endTime: finalEndTime,
-                            genre: selectedGenre,
-                            practiceType: selectedPracticeType
-                        )
-                        
-                        viewModel.cleanup()
-                        presentationMode.wrappedValue.dismiss()
+                        saveLog()
                     }
-                    .disabled(viewModel.elapsedTime == 0)
+                    .disabled(!canSave)
                 }
             }
             .onAppear {
@@ -204,7 +222,7 @@ struct NewLogScreen: View {
             .onDisappear {
                 viewModel.cleanup()
             }
-            .alert("Microphone Access Required", isPresented: $viewModel.showingPermissionAlert) {
+            .alert("Microphone Access Required", isPresented: $viewModel.audioManager.showingPermissionAlert) {
                 Button("Settings") {
                     if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(settingsURL)
@@ -215,7 +233,39 @@ struct NewLogScreen: View {
                 Text("Please enable microphone access in Settings to record audio during practice sessions.")
             }
         }
-        .navigationBarBackButtonHidden(true)
+    }
+    
+    // MARK: - Helper Functions
+    
+    private func toggleGenre(_ genre: String) {
+        if selectedGenres.contains(genre) {
+            selectedGenres.remove(genre)
+        } else {
+            selectedGenres.insert(genre)
+        }
+    }
+    
+    private func togglePracticeType(_ type: String) {
+        if selectedPracticeTypes.contains(type) {
+            selectedPracticeTypes.remove(type)
+        } else {
+            selectedPracticeTypes.insert(type)
+        }
+    }
+    
+    private var canSave: Bool {
+        viewModel.timerManager.elapsedTime > 0 &&
+        !selectedGenres.isEmpty &&
+        !selectedPracticeTypes.isEmpty
+    }
+    
+    private func saveLog() {
+        viewModel.selectedGenres = selectedGenres
+        viewModel.selectedPracticeTypes = selectedPracticeTypes
+        
+        viewModel.saveLogEntry()
+        viewModel.cleanup()
+        presentationMode.wrappedValue.dismiss()
     }
 }
 

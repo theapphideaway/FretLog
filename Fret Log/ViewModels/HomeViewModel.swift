@@ -33,7 +33,6 @@ class HomeViewModel: ObservableObject{
     
     func addLog(log: GuitarLog){
         guard let context = context else { return }
-        log.audio_file_name
         do{
             try context.save()
             fetchLogs()

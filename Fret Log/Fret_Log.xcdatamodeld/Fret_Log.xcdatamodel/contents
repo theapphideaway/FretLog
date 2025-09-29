@@ -1,14 +1,24 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="24G90" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Genre" representedClassName="Genre" syncable="YES" codeGenerationType="class">
+        <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <relationship name="guitar_logs" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="GuitarLog" inverseName="genres" inverseEntity="GuitarLog"/>
+    </entity>
     <entity name="GuitarLog" representedClassName="GuitarLog" syncable="YES" codeGenerationType="class">
         <attribute name="audio_file_name" optional="YES" attributeType="String"/>
         <attribute name="audio_file_path" optional="YES" attributeType="String"/>
-        <attribute name="genre" optional="YES" attributeType="String"/>
-        <attribute name="practice_type" optional="YES" attributeType="String"/>
         <attribute name="time_ended" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="time_started" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="genres" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Genre" inverseName="guitar_logs" inverseEntity="Genre"/>
+        <relationship name="practice_types" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="PracticeType" inverseName="guitar_logs" inverseEntity="PracticeType"/>
     </entity>
     <entity name="Item" representedClassName="Item" syncable="YES" codeGenerationType="class">
         <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="PracticeType" representedClassName="PracticeType" syncable="YES" codeGenerationType="class">
+        <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <relationship name="guitar_logs" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="GuitarLog" inverseName="practice_types" inverseEntity="GuitarLog"/>
     </entity>
 </model>

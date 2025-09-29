@@ -12,6 +12,7 @@ struct LogDetailsScreen: View {
     let log: GuitarLog
     @StateObject private var viewModel = LogDetailsViewModel()
     @Environment(\.presentationMode) var presentationMode
+    @State private var practiceTypeColor: Color = .clear
     
     var body: some View {
         NavigationView {
@@ -26,13 +27,23 @@ struct LogDetailsScreen: View {
                                 .frame(width: 6, height: 40)
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(log.practice_type ?? "Practice")
-                                    .font(.title2)
-                                    .fontWeight(.semibold)
+                                // Display practice types
+                                if !practiceTypeNames.isEmpty {
+                                    Text(practiceTypeNames.joined(separator: ", "))
+                                        .font(.title2)
+                                        .fontWeight(.semibold)
+                                } else {
+                                    Text("Practice")
+                                        .font(.title2)
+                                        .fontWeight(.semibold)
+                                }
                                 
-                                Text(log.genre ?? "")
-                                    .font(.title3)
-                                    .foregroundColor(.secondary)
+                                // Display genres
+                                if !genreNames.isEmpty {
+                                    Text(genreNames.joined(separator: ", "))
+                                        .font(.title3)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                             
                             Spacer()
@@ -40,12 +51,60 @@ struct LogDetailsScreen: View {
                         
                         Divider()
                         
+                        // Practice Types Section (as tags)
+                        if !practiceTypeNames.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Practice Types")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                
+                                FlowLayout(spacing: 8) {
+                                    ForEach(practiceTypeNames, id: \.self) { type in
+                                        Text(type)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(getPracticeTypeColor(type))
+                                            .cornerRadius(8)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Genres Section (as tags)
+                        if !genreNames.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Genres")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                
+                                FlowLayout(spacing: 8) {
+                                    ForEach(genreNames, id: \.self) { genre in
+                                        Text(genre)
+                                            .font(.subheadline)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.primary)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(Color.secondary.opacity(0.15))
+                                            .cornerRadius(8)
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Divider()
+                        
                         // Session Details
                         VStack(alignment: .leading, spacing: 8) {
-                            DetailRow(title: "Date", value: formatDate(log.time_started))
-                            DetailRow(title: "Start Time", value: formatTime(log.time_started))
-                            DetailRow(title: "End Time", value: formatTime(log.time_ended))
-                            DetailRow(title: "Duration", value: formatDuration())
+                            DetailRow(title: "Date", value: viewModel.formatDate(log.time_started))
+                            DetailRow(title: "Start Time", value: viewModel.formatTime(log.time_started))
+                            DetailRow(title: "End Time", value: viewModel.formatTime(log.time_ended))
+                            DetailRow(title: "Duration", value: viewModel.formatDuration(log: log))
                         }
                     }
                     .padding()
@@ -53,7 +112,7 @@ struct LogDetailsScreen: View {
                     .cornerRadius(16)
                     
                     // Audio Section
-                    if hasAudio {
+                    if viewModel.hasAudio(log: log) {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Recording")
                                 .font(.headline)
@@ -71,7 +130,7 @@ struct LogDetailsScreen: View {
                                             .fontWeight(.medium)
                                         
                                         if viewModel.audioDuration > 0 {
-                                            Text("Duration: \(formatAudioDuration(viewModel.audioDuration))")
+                                            Text("Duration: \(viewModel.formatAudioDuration(viewModel.audioDuration))")
                                                 .font(.caption)
                                                 .foregroundColor(.secondary)
                                         }
@@ -110,13 +169,13 @@ struct LogDetailsScreen: View {
                                             
                                             // Time Labels
                                             HStack {
-                                                Text(formatAudioTime(viewModel.playbackTime))
+                                                Text(viewModel.formatAudioTime(viewModel.playbackTime))
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
                                                 
                                                 Spacer()
                                                 
-                                                Text(formatAudioTime(viewModel.audioDuration))
+                                                Text(viewModel.formatAudioTime(viewModel.audioDuration))
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
                                             }
@@ -160,9 +219,10 @@ struct LogDetailsScreen: View {
             }
         }
         .onAppear {
-            if hasAudio {
+            if viewModel.hasAudio(log: log) {
                 viewModel.setupAudio(audioPath: log.audio_file_path ?? "")
             }
+            practiceTypeColor = primaryPracticeTypeColor
         }
         .onDisappear {
             viewModel.stopAudio()
@@ -170,64 +230,33 @@ struct LogDetailsScreen: View {
         .navigationBarHidden(true)
     }
     
-    // MARK: - Helper Properties
-    private var hasAudio: Bool {
-        guard let audioFileName = log.audio_file_name else { return false }
-        return audioFileName != "No audio" && !audioFileName.isEmpty
+    // MARK: - Computed Properties for Relationships
+    
+    private var practiceTypeNames: [String] {
+        guard let types = log.practice_types as? Set<PracticeType> else { return [] }
+        return types.compactMap { $0.name }.sorted()
     }
     
-    private var practiceTypeColor: Color {
-        switch log.practice_type {
-        case "Improv": return .blue
-        case "Song": return .orange
+    private var genreNames: [String] {
+        guard let genres = log.genres as? Set<Genre> else { return [] }
+        return genres.compactMap { $0.name }.sorted()
+    }
+    
+    private var primaryPracticeTypeColor: Color {
+        guard let firstType = practiceTypeNames.first else { return .gray }
+        return getPracticeTypeColor(firstType)
+    }
+    
+    private func getPracticeTypeColor(_ type: String) -> Color {
+        switch type {
+        case "Improv", "Improvisation": return .blue
+        case "Songs": return .orange
         case "Technique": return .green
         case "Scales": return .purple
         case "Theory": return .pink
         case "Ear Training": return .teal
         default: return .gray
         }
-    }
-    
-    // MARK: - Formatting Functions
-    private func formatDate(_ date: Date?) -> String {
-        guard let date = date else { return "Unknown" }
-        let formatter = DateFormatter()
-        formatter.dateStyle = .full
-        return formatter.string(from: date)
-    }
-    
-    private func formatTime(_ date: Date?) -> String {
-        guard let date = date else { return "Unknown" }
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
-    
-    private func formatDuration() -> String {
-        guard let start = log.time_started,
-              let end = log.time_ended else { return "Unknown" }
-        
-        let duration = end.timeIntervalSince(start)
-        let hours = Int(duration) / 3600
-        let minutes = Int(duration) % 3600 / 60
-        
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else {
-            return "\(minutes)m"
-        }
-    }
-    
-    private func formatAudioTime(_ time: TimeInterval) -> String {
-        let minutes = Int(time) / 60
-        let seconds = Int(time) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
-    
-    private func formatAudioDuration(_ duration: TimeInterval) -> String {
-        let minutes = Int(duration) / 60
-        let seconds = Int(duration) % 60
-        return "\(minutes):\(String(format: "%02d", seconds))"
     }
 }
 
@@ -251,4 +280,54 @@ struct DetailRow: View {
     }
 }
 
-
+// MARK: - FlowLayout for Tags
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+    
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = FlowResult(
+            in: proposal.replacingUnspecifiedDimensions().width,
+            subviews: subviews,
+            spacing: spacing
+        )
+        return result.size
+    }
+    
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = FlowResult(
+            in: bounds.width,
+            subviews: subviews,
+            spacing: spacing
+        )
+        for (index, subview) in subviews.enumerated() {
+            subview.place(at: CGPoint(x: bounds.minX + result.positions[index].x, y: bounds.minY + result.positions[index].y), proposal: .unspecified)
+        }
+    }
+    
+    struct FlowResult {
+        var size: CGSize = .zero
+        var positions: [CGPoint] = []
+        
+        init(in maxWidth: CGFloat, subviews: Subviews, spacing: CGFloat) {
+            var currentX: CGFloat = 0
+            var currentY: CGFloat = 0
+            var lineHeight: CGFloat = 0
+            
+            for subview in subviews {
+                let size = subview.sizeThatFits(.unspecified)
+                
+                if currentX + size.width > maxWidth && currentX > 0 {
+                    currentX = 0
+                    currentY += lineHeight + spacing
+                    lineHeight = 0
+                }
+                
+                positions.append(CGPoint(x: currentX, y: currentY))
+                lineHeight = max(lineHeight, size.height)
+                currentX += size.width + spacing
+            }
+            
+            self.size = CGSize(width: maxWidth, height: currentY + lineHeight)
+        }
+    }
+}
