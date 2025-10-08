@@ -15,10 +15,22 @@ struct ContentView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \Item.timestamp, ascending: true)],
         animation: .default)
     private var items: FetchedResults<Item>
+    @State private var selectedTab = 0
 
     var body: some View {
-        
-        HomeScreen()
+        TabView(selection: $selectedTab) {
+            HomeScreen()
+                .tabItem {
+                    Label("Home", systemImage: "house.fill")
+                }
+                .tag(0)
+            
+            ScalePracticeScreen()
+                            .tabItem {
+                                Label("Scale Practice", systemImage: "music.note.list")
+                            }
+                            .tag(1)
+        }
         //LogDetailsScreen()
         
         //Keeping this because its interesting

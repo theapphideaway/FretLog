@@ -16,7 +16,7 @@ struct HomeScreen: View {
     @State var selectedLog: GuitarLog? = nil
     
     var body: some View {
-        NavigationStack{
+        NavigationSplitView{
             VStack{
                 HStack{Spacer()}
                 ScrollView{
@@ -43,6 +43,20 @@ struct HomeScreen: View {
             .onAppear{
                 viewModel.setContext(viewContext)
                 viewModel.fetchLogs()
+            }
+        }detail: {
+            // DETAIL VIEW (Right side - changes based on selection)
+            if showNewLogScreen {
+                NewLogScreen()
+            } else if let log = selectedLog {
+                LogDetailsScreen(log: log)
+            } else {
+                // Empty state when nothing is selected
+                ContentUnavailableView(
+                    "Select a Practice Log",
+                    systemImage: "music.note.list",
+                    description: Text("Choose a log from the list or create a new one")
+                )
             }
         }
         

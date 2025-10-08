@@ -16,11 +16,11 @@ struct NewLogScreen: View {
     @State private var selectedGenres: Set<String> = []
     @State private var selectedPracticeTypes: Set<String> = []
     
-    let genres = ["Jazz", "Classical", "Rock", "Blues", "Folk", "Metal"]
-    let practiceTypes = ["Improv", "Songs", "Scales", "Technique", "Theory", "Ear Training"]
+    let genres = ["Jazz", "Classical"]
+    let practiceTypes = ["Improv", "Songs"]
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section {
                     VStack(spacing: 20) {
